@@ -14,6 +14,12 @@ namespace possum {
         //dtor
     }
 
+    void Game::create(int width, int height, std::string title){
+        window.create(sf::VideoMode(width, height), title);
+        gameState.set("width", width);
+        gameState.set("height", height);
+    }
+
     void Game::run(){
         sf::Clock clock;
         while (window.isOpen()){
@@ -45,6 +51,9 @@ namespace possum {
                     for (std::vector<Entity>::iterator i = currentScene->entities.begin(); i < currentScene->entities.end(); ++i){
                         i->handle_event(POINTER_MOVE, gameState, &event.mouseMove);
                     }
+                } else if (event.type == sf::Event::Resized){
+                    gameState.set("width", event.size.width);
+                    gameState.set("height", event.size.height);
                 }
             }
             sf::Time time = clock.getElapsedTime() + clock.restart();

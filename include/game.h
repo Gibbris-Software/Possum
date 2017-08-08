@@ -14,9 +14,7 @@ namespace possum {
     {
         public:
             Game();
-            void create(int width, int height, std::string title){
-                window.create(sf::VideoMode(width, height), title);
-            }
+            void create(int width, int height, std::string title);
             virtual ~Game();
             void run();
             void setScene(Scene* nextScene) { pendingScene = nextScene; };
