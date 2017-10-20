@@ -4,15 +4,16 @@
 #include "SFML/Graphics.hpp"
 #include "entity.h"
 #include <vector>
+#include <memory>
 
 namespace possum {
     class Scene
     {
         public:
-            Scene(): background(sf::Color(0, 0, 0, 0)){};
-            Scene(sf::Color bg): background(bg){}
+            Scene(): entities(), background(sf::Color(0, 0, 0, 0)){};
+            Scene(sf::Color bg): entities(), background(bg){}
             Entity& create(int type, float x, float y, float radius, sf::Texture& texture);
-            std::vector<Entity> entities;
+            std::vector<std::shared_ptr<Entity> > entities;
             sf::Color background;
         protected:
         private:

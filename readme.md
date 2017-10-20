@@ -35,9 +35,9 @@ Concepts
 
 - Callback
 
-    An event callback is a function with the signature `void blah(possum::Entity&, possum::State&, void*)`.
-    The first argument is the entity the event is called on, the second is the global state of the game,
-    and the third is a pointer to whatever data is needed for the event, as shown in the table below.
+    An event callback is a function with the signature `void blah(possum::Entity&, possum::Scene&, possum::State&, void*)`.
+    The first argument is the entity the event is called on, the second is the current_scene, the third is the global state of the game,
+    and the fourth is a pointer to whatever data is needed for the event, as shown in the table below.
 
     <table>
         <th>
@@ -75,4 +75,6 @@ For most cases, you can just copy these files into your project and compile as n
 
 ### Examples
 
-possum_test.cpp: g++ examples/possum_test.cpp src/game.cpp src/scene.cpp -I include -lsfml-system -lsfml-window -lsfml-graphics -o examples/possum_test
+Copy the files from `possum` into the `examples` directory, then run:
+
+possum_test.cpp: g++ possum_test.cpp game.cpp scene.cpp -lsfml-system -lsfml-window -lsfml-graphics -o examples/possum_test

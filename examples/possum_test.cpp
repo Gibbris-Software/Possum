@@ -1,3 +1,6 @@
+// Copy all possum files to this directory then run
+// g++ -std=c++11 possum_test.cpp game.cpp scene.cpp -o possum_test -lsfml-graphics -lsfml-window -lsfml-system
+
 #include "possum.h"
 #include <math.h>
 #include <cstdlib>
@@ -16,19 +19,19 @@ enum entity_types {
 possum::Scene rooms[9];
 possum::Game game;
 
-void redraw_possum(possum::Entity& entity, possum::State& gameState, void* data){
+void redraw_possum(possum::Entity& entity, possum::Scene& scene, possum::State& gameState, void* data){
     sf::RenderWindow& window = *(sf::RenderWindow*)(data);
     entity.sprite.setPosition(entity.x, entity.y);
     window.draw(entity.sprite);
 }
 
-void update_possum(possum::Entity& entity, possum::State& gameState, void* data){
+void update_possum(possum::Entity& entity, possum::Scene& scene, possum::State& gameState, void* data){
     sf::Time time = *(sf::Time*)(data);
     entity.x += cos(entity.sprite.getRotation()*3.141592653589793238462/180)*time.asSeconds()*60;
     entity.y += sin(entity.sprite.getRotation()*3.141592653589793238462/180)*time.asSeconds()*60;
 }
 
-void keypress_possum(possum::Entity& entity, possum::State& gameState, void* data){
+void keypress_possum(possum::Entity& entity, possum::Scene& scene, possum::State& gameState, void* data){
     sf::Event::KeyEvent keyEvent = *(sf::Event::KeyEvent*)(data);
     if (keyEvent.code == sf::Keyboard::Left){
         entity.sprite.setRotation(entity.sprite.getRotation()-10);
@@ -37,7 +40,7 @@ void keypress_possum(possum::Entity& entity, possum::State& gameState, void* dat
     }
 }
 
-void collide_possum(possum::Entity& entity, possum::State& gameState, void* data){
+void collide_possum(possum::Entity& entity, possum::Scene& scene, possum::State& gameState, void* data){
     possum::Entity& other = *(possum::Entity*)(data);
     if (other.type == TREE){
         float factor = pow(other.radius + entity.radius, 2)/(pow(other.x-entity.x, 2)+pow(other.y-entity.y, 2));
@@ -50,13 +53,13 @@ void collide_possum(possum::Entity& entity, possum::State& gameState, void* data
     }
 }
 
-void redraw_tree(possum::Entity& entity, possum::State& gameState, void* data){
+void redraw_tree(possum::Entity& entity, possum::Scene& scene, possum::State& gameState, void* data){
     sf::RenderWindow& window = *(sf::RenderWindow*)(data);
     entity.sprite.setPosition(entity.x, entity.y);
     window.draw(entity.sprite);
 }
 
-void collide_tree(possum::Entity& entity, possum::State& gameState, void* data){
+void collide_tree(possum::Entity& entity, possum::Scene& scene, possum::State& gameState, void* data){
     possum::Entity& other = *(possum::Entity*)(data);
     if (other.type == TREE){
         entity.x = ((float) rand()) / RAND_MAX * 640;
@@ -64,7 +67,7 @@ void collide_tree(possum::Entity& entity, possum::State& gameState, void* data){
     }
 }
 
-void click_tree(possum::Entity& entity, possum::State& gameState, void* data){
+void click_tree(possum::Entity& entity, possum::Scene& scene, possum::State& gameState, void* data){
     sf::Event::MouseButtonEvent buttonEvent = *(sf::Event::MouseButtonEvent*)(data);
     if (buttonEvent.button == sf::Mouse::Left && (pow(buttonEvent.x-entity.x, 2) + pow(buttonEvent.y-entity.y, 2) < pow(entity.radius, 2))){
         entity.dead = true;
@@ -73,13 +76,13 @@ void click_tree(possum::Entity& entity, possum::State& gameState, void* data){
     }
 }
 
-void redraw_acorn(possum::Entity& entity, possum::State& gameState, void* data){
+void redraw_acorn(possum::Entity& entity, possum::Scene& scene, possum::State& gameState, void* data){
     sf::RenderWindow& window = *(sf::RenderWindow*)(data);
     entity.sprite.setPosition(entity.x, entity.y);
     window.draw(entity.sprite);
 }
 
-void redraw_win(possum::Entity& entity, possum::State& gameState, void* data){
+void redraw_win(possum::Entity& entity, possum::Scene& scene, possum::State& gameState, void* data){
     sf::RenderWindow& window = *(sf::RenderWindow*)(data);
     entity.sprite.setPosition(entity.sprite.getOrigin());
     window.draw(entity.sprite);

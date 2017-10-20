@@ -1,6 +1,8 @@
 #ifndef POSSUM_GAMESTATE_H
 #define POSSUM_GAMESTATE_H
 
+#include <map>
+
 namespace possum {
     class State
     {
