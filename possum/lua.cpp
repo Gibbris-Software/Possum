@@ -60,7 +60,7 @@ namespace possum {
         sf::Time time = *(sf::Time*) data;
         LuaEntity* entity = (LuaEntity*) &e;
         //stackdump_g(entity->data);
-        //std::cout << "Start: " << lua_gettop(entity->data) << std::endl;
+        //::cout << "Start: " << lua_gettop(entity->data) << std::endl;
         lua_pushlightuserdata(entity->data, entity);
         lua_gettable(entity->data, LUA_REGISTRYINDEX);
         //std::cout << "With Entity: " << lua_gettop(entity->data) << std::endl;
@@ -86,6 +86,12 @@ namespace possum {
         //stackdump_g(entity->data);
         //std::cout << "When I need the entity again: " << lua_gettop(entity->data) << std::endl;
         lua_pop(entity->data, 1);
+        lua_getfield(entity->data, 1, "dead");
+        entity->dead = lua_toboolean(entity->data, 2);
+        lua_pop(entity->data, 1);
+        lua_getfield(entity->data, 1, "rotation");
+        entity->sprite.setRotation(lua_tonumber(entity->data, 2));
+        lua_pop(entity->data, 1);
         lua_getfield(entity->data, 1, "x");
         entity->x = lua_tonumber(entity->data, 2);
         lua_pop(entity->data, 1);
@@ -97,6 +103,36 @@ namespace possum {
         lua_pop(entity->data, 2);
         //std::cout << "End: " << lua_gettop(entity->data) << std::endl;
         //std::cout << entity->x << ", " << entity->y << std::endl;
+    }
+
+    void keypress(Entity& e, Scene& scene, State& state, void* data){
+        sf::Event::KeyEvent key_event = *(sf::Event::KeyEvent*) data;
+        LuaEntity* entity = (LuaEntity*) &e;
+        //stackdump_g(entity->data);
+        //std::cout << "Start: " << lua_gettop(entity->data) << std::endl;
+        lua_pushlightuserdata(entity->data, entity);
+        lua_gettable(entity->data, LUA_REGISTRYINDEX);
+        //std::cout << "With Entity: " << lua_gettop(entity->data) << std::endl;
+        lua_getfield(entity->data, -1, "type");
+        //stackdump_g(entity->data);
+        lua_pop(entity->data, 1);
+        //stackdump_g(entity->data);
+        lua_getfield(entity->data, -1, "callbacks");
+        //stackdump_g(entity->data);
+        lua_getfield(entity->data, -1, "keypress");
+        lua_pushlightuserdata(entity->data, entity);
+        lua_gettable(entity->data, LUA_REGISTRYINDEX);
+        lua_getglobal(entity->data, "scene");
+        lua_newtable(entity->data); // Game state
+        for (auto item : state){
+            lua_pushinteger(entity->data, item.second);
+            lua_pushstring(entity->data, item.first.c_str());
+            lua_settable(entity->data, -3);
+        }
+        lua_pushinteger(entity->data, key_event.code);
+        //stackdump_g(entity->data);
+        lua_call(entity->data, 4, 0);
+        lua_pop(entity->data, 2);
     }
 
     // Scene functions
@@ -141,9 +177,9 @@ namespace possum {
                     std::string name = lua_tostring(state, -1);
                     if (name == "update"){
                         entity->register_event(UPDATE, update);
+                    } else if (name == "keypress"){
+                        entity->register_event(KEY_DOWN, keypress);
                     /*
-                        case "keypress":
-                            //entity->register_event(KEY_DOWN, keypress);
                             break;
                         case "keyrelease":
                             //entity->register_event(KEY_UP, keyrelease);
@@ -172,6 +208,15 @@ namespace possum {
         return 0;
     }
 
+    void open_keyboard(lua_State* state){
+        lua_newtable(state);
+        lua_pushinteger(state, sf::Keyboard::Left);
+        lua_setfield(state, -2, "Left");
+        lua_pushinteger(state, sf::Keyboard::Right);
+        lua_setfield(state, -2, "Right");
+        lua_setglobal(state, "keyboard");
+    }
+
     // Public scene loader
     Scene& load_lua_scene(std::string filename, Game& game){
         lua_State* data = luaL_newstate();
@@ -193,6 +238,7 @@ namespace possum {
             lua_settable(data, -3);
         }
         lua_setglobal(data, "state");
+        open_keyboard(data);
         if (luaL_loadfile(data, filename.c_str()) != LUA_OK){
             std::cout << lua_tostring(data, -1) << std::endl;
             return *scene;

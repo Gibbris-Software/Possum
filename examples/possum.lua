@@ -47,9 +47,9 @@ end
 
 possum.callbacks.keypress = function(e, scene, state, key)
     if key == keyboard.Left then
-        entity.rotation = entity.rotation + 10
+        e.rotation = e.rotation - 10
     elseif key == keyboard.Right then
-        entity.rotation = entity.rotation - 10
+        e.rotation = e.rotation + 10
     end
 end
 
@@ -75,6 +75,13 @@ local function collide_tree(e, scene, state, other)
         e.y = math.random(480)
         e.sprite.x = e.x
         e.sprite.y = e.y
+    end
+end
+
+local function click_tree(e, scene, state, event)
+    if event.button == mouse.left and ((event.x - e.x)^2 + (event.y - e.y)^2) < e.radius^2 then
+        e.dead = true;
+        state["killed_trees"] = state["killed_trees"] + 1
     end
 end
 
