@@ -1,7 +1,8 @@
 // Copy all possum files to this directory then run
-// g++ -std=c++11 possum_test.cpp game.cpp scene.cpp -o possum_test -lsfml-graphics -lsfml-window -lsfml-system
+// g++ -std=c++11 possum_test.cpp game.cpp scene.cpp lua.cpp -o possum_test -lsfml-graphics -lsfml-window -lsfml-system
 
 #include "possum.h"
+#include "lua_script.h"
 #include <math.h>
 #include <cstdlib>
 #include <iostream>
@@ -16,9 +17,10 @@ enum entity_types {
 };
 
 
-possum::Scene rooms[9];
+// possum::Scene rooms[9];
 possum::Game game;
 
+/* // Possum callbacks (now in Lua)
 void redraw_possum(possum::Entity& entity, possum::Scene& scene, possum::State& gameState, void* data){
     sf::RenderWindow& window = *(sf::RenderWindow*)(data);
     entity.sprite.setPosition(entity.x, entity.y);
@@ -52,6 +54,7 @@ void collide_possum(possum::Entity& entity, possum::Scene& scene, possum::State&
         game.setScene(&rooms[gameState.get("level")]);
     }
 }
+*/
 
 void redraw_tree(possum::Entity& entity, possum::Scene& scene, possum::State& gameState, void* data){
     sf::RenderWindow& window = *(sf::RenderWindow*)(data);
@@ -71,8 +74,8 @@ void click_tree(possum::Entity& entity, possum::Scene& scene, possum::State& gam
     sf::Event::MouseButtonEvent buttonEvent = *(sf::Event::MouseButtonEvent*)(data);
     if (buttonEvent.button == sf::Mouse::Left && (pow(buttonEvent.x-entity.x, 2) + pow(buttonEvent.y-entity.y, 2) < pow(entity.radius, 2))){
         entity.dead = true;
-        gameState.set("killed_trees", gameState.get("killed_trees") + 1);
-        std::cout << "Killed " << gameState.get("killed_trees") << " trees" << std::endl;
+        gameState["killed_trees"] = gameState["killed_trees"] + 1;
+        std::cout << "Killed " << gameState["killed_trees"] << " trees" << std::endl;
     }
 }
 
@@ -90,16 +93,17 @@ void redraw_win(possum::Entity& entity, possum::Scene& scene, possum::State& gam
 
 
 int main(int argc, char* argv[]){
-    sf::Texture tree_texture;
-    tree_texture.loadFromFile("/home/john/Documents/Python/Possum/tree.png");
-    sf::Texture possum_texture;
-    possum_texture.loadFromFile("/home/john/Documents/Python/Possum/possum.png");
+    /*sf::Texture tree_texture;
+    tree_texture.loadFromFile("tree.png");
+    //sf::Texture possum_texture;
+    //possum_texture.loadFromFile("possum.png");
     sf::Texture acorn_texture;
-    acorn_texture.loadFromFile("/home/john/Documents/Python/Possum/acorn.png");
+    acorn_texture.loadFromFile("acorn.png");*/
     sf::Texture win_texture;
-    win_texture.loadFromFile("/home/john/Documents/Python/Possum/win.png");
+    win_texture.loadFromFile("win.png");
+    possum::setup_lua_scripting();
     for (int i = 0; i < 8; i++){
-        possum::Scene room(sf::Color(10, 32, 16));
+        /*possum::Scene room = game.newScene(sf::Color(10, 32, 16));
         for (int j = 0; j <= i; j++){
             float x = ((float) rand()) / RAND_MAX * 640;
             float y = ((float) rand()) / RAND_MAX * 480;
@@ -111,19 +115,15 @@ int main(int argc, char* argv[]){
         float x = ((float) rand()) / RAND_MAX * 640;
         float y = ((float) rand()) / RAND_MAX * 480;
         possum::Entity& a = room.create(ACORN, x, y, 5, acorn_texture);
-        a.register_event(possum::REDRAW, redraw_acorn);
-        possum::Entity& p = room.create(POSSUM, 320, 240, 10, possum_texture);
-        p.register_event(possum::UPDATE, update_possum);
-        p.register_event(possum::REDRAW, redraw_possum);
-        p.register_event(possum::COLLISION, collide_possum);
-        p.register_event(possum::KEY_DOWN, keypress_possum);
-        rooms[i] = room;
+        a.register_event(possum::REDRAW, redraw_acorn);*/
+        possum::Scene room = load_lua_scene("possum.lua", game);
+        room.background = sf::Color(10, 32, 16);
     }
-    possum::Scene winroom(sf::Color(10, 32, 16));
+    possum::Scene winroom = *game.newScene();
+    winroom.background = sf::Color(10, 32, 16);
     winroom.create(WIN, 0, 0, 0, win_texture).register_event(possum::REDRAW, redraw_win);
-    rooms[8] = winroom;
     game.create(640, 480, "Possum");
-    game.setScene(&rooms[0]);
+    game.setScene(0);
     game.run();
     return 0;
 }

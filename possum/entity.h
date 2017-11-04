@@ -29,8 +29,9 @@ namespace possum {
         USER_EVENT_8,
     };
 
-    struct Entity
+    class Entity
     {
+        public:
             void handle_event(int event, Scene& scene, State& gameState, void* data) {if (callbacks[event] != 0) {callbacks[event](*this, scene, gameState, data);}}
             Entity& register_event(int event, callback handler) {callbacks[event] = handler; return *this;}
             Entity(int type, float x, float y, float radius, sf::Texture& texture):

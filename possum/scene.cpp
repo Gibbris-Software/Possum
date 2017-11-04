@@ -17,5 +17,4 @@ namespace possum {
         entities.push_back(e);
         return *entities.back();
     }
-
 }
