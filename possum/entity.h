@@ -7,8 +7,9 @@
 namespace possum {
     class Entity;
     class Scene;
+    class Game;
 
-    typedef void (*callback)(Entity&, Scene&, State&, void*);
+    typedef void (*callback)(Entity&, Scene&, Game&, void*);
 
     enum event {
         UPDATE,
@@ -32,7 +33,7 @@ namespace possum {
     class Entity
     {
         public:
-            void handle_event(int event, Scene& scene, State& gameState, void* data) {if (callbacks[event] != 0) {callbacks[event](*this, scene, gameState, data);}}
+            void handle_event(int event, Scene& scene, Game& game, void* data) {if (callbacks[event] != 0) {callbacks[event](*this, scene, game, data);}}
             Entity& register_event(int event, callback handler) {callbacks[event] = handler; return *this;}
             Entity(int type, float x, float y, float radius, sf::Texture& texture):
              type(type), x(x), y(y), radius(radius), texture(texture), sprite(texture),

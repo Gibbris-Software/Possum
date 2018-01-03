@@ -18,16 +18,19 @@ namespace possum {
             void create(int width, int height, std::string title);
             virtual ~Game();
             void run();
-            void setScene(int nextScene) { gameState["scene"] = nextScene; };
+            void setScene(int nextScene) { state["scene"] = nextScene; };
             std::shared_ptr<Scene> newScene() { scenes.push_back(std::shared_ptr<Scene>(new Scene())); return scenes.back();};
-            sf::Texture& loadTexture(std::string filename);
-            State gameState;
+            int numScenes(){return scenes.size();};
+            sf::Texture& getTexture(std::string filename);
+            sf::Font& getFont(std::string filename);
+            State state;
         protected:
         private:
             sf::RenderWindow window;
             Scene currentScene;
             std::vector<std::shared_ptr<Scene>> scenes;
             std::map<std::string, sf::Texture> textures;
+            std::map<std::string, sf::Font> fonts;
     };
 }
 #endif // POSSUM_GAME_H

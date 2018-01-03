@@ -50,6 +50,27 @@ namespace possum {
 
     luaL_Reg scene_lib[2];
 
+    void load_state(lua_State* data, State& state){
+        //lua_getglobal(data, "state");
+        for (auto item : state){
+            lua_pushstring(data, item.first.c_str());
+            lua_pushinteger(data, item.second);
+            lua_settable(data, -3);
+        }
+    }
+
+    void cleanup_state(lua_State* data, State& state){
+        //lua_getglobal(data, "state");
+        lua_pushnil(data);
+        while (lua_next(data, -2) != 0){
+            if (lua_type(data, -2) == LUA_TSTRING && lua_type(data, -1) == LUA_TNUMBER){
+                state[lua_tostring(data, -2)] = lua_tointeger(data, -1);
+            }
+            lua_pop(data, 1);
+        }
+        lua_pop(data, 1);
+    }
+
     void redraw(Entity& e, Scene& scene, State& state, void* data){
         sf::RenderWindow& window = *(sf::RenderWindow*)(data);
         e.sprite.setPosition(e.x, e.y);
@@ -74,12 +95,8 @@ namespace possum {
         lua_pushlightuserdata(entity->data, entity);
         lua_gettable(entity->data, LUA_REGISTRYINDEX);
         lua_getglobal(entity->data, "scene");
-        lua_newtable(entity->data); // Game state
-        for (auto item : state){
-            lua_pushinteger(entity->data, item.second);
-            lua_pushstring(entity->data, item.first.c_str());
-            lua_settable(entity->data, -3);
-        }
+        lua_getglobal(entity->data, "state");
+        load_state(entity->data, state);
         lua_pushnumber(entity->data, time.asSeconds());
         //stackdump_g(entity->data);
         lua_call(entity->data, 4, 0);
@@ -101,6 +118,8 @@ namespace possum {
         lua_getfield(entity->data, 1, "radius");
         entity->radius = lua_tonumber(entity->data, 2);
         lua_pop(entity->data, 2);
+        lua_getglobal(entity->data, "state");
+        cleanup_state(entity->data, state);
         //std::cout << "End: " << lua_gettop(entity->data) << std::endl;
         //std::cout << entity->x << ", " << entity->y << std::endl;
     }
@@ -113,9 +132,7 @@ namespace possum {
         lua_pushlightuserdata(entity->data, entity);
         lua_gettable(entity->data, LUA_REGISTRYINDEX);
         //std::cout << "With Entity: " << lua_gettop(entity->data) << std::endl;
-        lua_getfield(entity->data, -1, "type");
         //stackdump_g(entity->data);
-        lua_pop(entity->data, 1);
         //stackdump_g(entity->data);
         lua_getfield(entity->data, -1, "callbacks");
         //stackdump_g(entity->data);
@@ -123,14 +140,35 @@ namespace possum {
         lua_pushlightuserdata(entity->data, entity);
         lua_gettable(entity->data, LUA_REGISTRYINDEX);
         lua_getglobal(entity->data, "scene");
-        lua_newtable(entity->data); // Game state
-        for (auto item : state){
-            lua_pushinteger(entity->data, item.second);
-            lua_pushstring(entity->data, item.first.c_str());
-            lua_settable(entity->data, -3);
-        }
+        lua_getglobal(entity->data, "state");
+        load_state(entity->data, state);
         lua_pushinteger(entity->data, key_event.code);
         //stackdump_g(entity->data);
+        lua_call(entity->data, 4, 0);
+        lua_pop(entity->data, 2);
+    }
+
+    void collision(Entity& e, Scene& scene, State& state, void* data){
+        Entity* other = (Entity*) data;
+        LuaEntity* entity = (LuaEntity*) &e;
+        lua_pushlightuserdata(entity->data, entity);
+        lua_gettable(entity->data, LUA_REGISTRYINDEX);
+        lua_getfield(entity->data, -1, "callbacks");
+        lua_getfield(entity->data, -1, "collide");
+        lua_pushlightuserdata(entity->data, entity);
+        lua_gettable(entity->data, LUA_REGISTRYINDEX);
+        lua_getglobal(entity->data, "scene");
+        lua_getglobal(entity->data, "state");
+        load_state(entity->data, state);
+        lua_newtable(entity->data);
+        lua_pushnumber(entity->data, other->x);
+        lua_setfield(entity->data, -2, "x");
+        lua_pushnumber(entity->data, other->y);
+        lua_setfield(entity->data, -2, "y");
+        lua_pushnumber(entity->data, other->radius);
+        lua_setfield(entity->data, -2, "radius");
+        lua_pushnumber(entity->data, other->type);
+        lua_setfield(entity->data, -2, "type");
         lua_call(entity->data, 4, 0);
         lua_pop(entity->data, 2);
     }
@@ -145,6 +183,8 @@ namespace possum {
         }
         //std::cout << "Creating Entity!" << std::endl;
         //stackdump_g(state);
+        Scene* scene = (Scene*) lua_touserdata(state, lua_upvalueindex(1));
+        Game* game = (Game*) lua_touserdata(state, lua_upvalueindex(2));
         lua_getfield(state, 1, "type");
         int type = lua_tointeger(state, 2);
         lua_pop(state, 1);
@@ -158,11 +198,10 @@ namespace possum {
         float radius = lua_tonumber(state, 2);
         lua_pop(state, 1);
         lua_getfield(state, 1, "texture");
-        std::string texture = lua_tostring(state, 2);
+        sf::Texture& texture = game->loadTexture(lua_tostring(state, 2));
         lua_pop(state, 1);
-        Scene* scene = (Scene*) lua_touserdata(state, lua_upvalueindex(1));
-        Game* game = (Game*) lua_touserdata(state, lua_upvalueindex(2));
-        std::shared_ptr<Entity> entity(new LuaEntity(type, x, y, radius, game->loadTexture(texture), state));
+        std::shared_ptr<Entity> entity(new LuaEntity(type, x, y, radius, texture, state));
+        entity->sprite.setOrigin(texture.getSize().x/2, texture.getSize().y/2);
         scene->add(entity);
         lua_getfield(state, 1, "visible");
         if (lua_toboolean(state, -1) == 1){
@@ -179,24 +218,23 @@ namespace possum {
                         entity->register_event(UPDATE, update);
                     } else if (name == "keypress"){
                         entity->register_event(KEY_DOWN, keypress);
-                    /*
+                    } else if (name == "collide"){
+                        entity->register_event(COLLISION, collision);
+                    }/*
                             break;
                         case "keyrelease":
-                            //entity->register_event(KEY_UP, keyrelease);
+                            entity->register_event(KEY_UP, keyrelease);
                             break;
                         case "buttonpress":
-                            //entity->register_event(BUTTON_DOWN, buttonpress);
+                            entity->register_event(BUTTON_DOWN, buttonpress);
                             break;
                         case "buttonrelease":
-                            //entity->register_event(BUTTON_UP, buttonrelease);
+                            entity->register_event(BUTTON_UP, buttonrelease);
                             break;
                         case "pointermotion":
-                            //entity->register_event(POINTER_MOVE, pointer);
+                            entity->register_event(POINTER_MOVE, pointer);
                             break;
-                        case "collision":
-                            //entity->register_event(COLLISION, keypress);
-                            break;
-                    */}
+                    */
                 }
             }
         }
